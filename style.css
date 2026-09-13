@@ -36,21 +36,34 @@ h1 { margin: 0 0 4px; font-size: 26px; }
 
 .sub { margin: 0 0 20px; color: var(--muted); }
 
-button {
+.btn {
+  display: block;
   width: 100%;
   padding: 14px 18px;
   font-size: 17px;
   font-weight: 600;
-  color: #06131f;
-  background: var(--accent);
-  border: 0;
+  text-align: center;
+  text-decoration: none;
   border-radius: 10px;
   cursor: pointer;
   transition: filter .15s ease, opacity .15s ease;
 }
 
-button:hover:not(:disabled) { filter: brightness(1.08); }
-button:disabled { opacity: .55; cursor: default; }
+.btn.primary {
+  color: #06131f;
+  background: var(--accent);
+  border: 0;
+}
+
+.btn.secondary {
+  margin-top: 10px;
+  color: var(--text);
+  background: #232b38;
+  border: 1px solid #303a4a;
+}
+
+.btn:hover:not(:disabled) { filter: brightness(1.08); }
+.btn:disabled { opacity: .55; cursor: default; }
 
 .status { min-height: 24px; margin: 16px 0 6px; color: var(--muted); word-break: break-word; }
 .status.ok { color: var(--ok); font-weight: 600; }

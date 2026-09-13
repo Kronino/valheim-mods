@@ -11,13 +11,15 @@
     <h1>Valheim Modok</h1>
     <p class="sub">Legújabb: <span id="version">&hellip;</span> <span id="built"></span></p>
 
-    <button id="install" disabled>Telepítés</button>
+    <a class="btn primary" href="ValheimModsInstaller.exe" download>Telepítő letöltése</a>
+    <button id="install" class="btn secondary" disabled>Telepítés a böngészőből</button>
 
     <div id="status" class="status" role="status"></div>
     <div class="progress"><div id="bar"></div></div>
 
     <p class="hint">
-      Chrome vagy Edge szükséges. Telepítés előtt zárd be a Valheimet.
+      A letöltött <strong>ValheimModsInstaller.exe</strong> futtatásához engedélyezd a rendszergazdai
+      jogosultságot (UAC), és zárd be a Valheimet. A böngészős telepítéshez Chrome vagy Edge szükséges.
     </p>
     <p class="links">
       <a id="releases" href="#" target="_blank" rel="noopener">Összes verzió</a>
