@@ -64,6 +64,26 @@
     }
     return false;
   }
+  const VERSION_FILE = '.valheim-mods.version';
+  async function readInstalledVersion(dir) {
+    try {
+      const bep = await dir.getDirectoryHandle('BepInEx');
+      const fh = await bep.getFileHandle(VERSION_FILE);
+      const file = await fh.getFile();
+      return (await file.text()).trim();
+    } catch { return null; }
+  }
+  async function writeInstalledVersion(dir, version) {
+    if (!version) return;
+    try {
+      const bep = await dir.getDirectoryHandle('BepInEx', { create: true });
+      const fh = await bep.getFileHandle(VERSION_FILE, { create: true });
+      const w = await fh.createWritable();
+      await w.write(version);
+      await w.close();
+    } catch { /* ignore */ }
+  }
+
   async function pickFolder() {
     setStatus('Válaszd ki a Valheim mappát (ahol a Valheim.exe van)');
     const dir = await window.showDirectoryPicker({ id: 'valheim', mode: 'readwrite' });
@@ -95,6 +115,8 @@
       }
       if (!(await ensurePermission(state.dir))) { setStatus('Nincs írási engedély.', 'error'); return; }
 
+      const installedVersion = await readInstalledVersion(state.dir);
+
       setStatus('Modok letöltése...', 'busy');
       const res = await fetch(base() + '/valheim_mods.zip', { cache: 'no-store' });
       if (!res.ok) throw new Error('a letöltés sikertelen (' + res.status + ')');
@@ -125,7 +147,15 @@
       }
 
       setProgress(1, 1);
-      setStatus('Kész! Telepítve: v' + (state.manifest ? state.manifest.version : ''), 'ok');
+      const version = state.manifest ? state.manifest.version : '';
+      await writeInstalledVersion(state.dir, version);
+      if (installedVersion && version && installedVersion === version) {
+        setStatus('Nincs új verzió – már a legújabb (v' + version + ') van telepítve.', 'ok');
+      } else if (installedVersion && version) {
+        setStatus('Frissítve: v' + installedVersion + ' → v' + version, 'ok');
+      } else {
+        setStatus('Kész! Telepítve: v' + version, 'ok');
+      }
     } catch (err) {
       if (err && err.name === 'AbortError') { setStatus('Megszakítva.'); return; }
       const msg = String(err && err.message ? err.message : err);
