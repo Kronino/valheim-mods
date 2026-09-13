@@ -26,7 +26,7 @@
     return res.json();
   }
 
-  // --- remembered folder handle ---------------------------------------------
+  // --- megjegyzett mappahivatkozás (folder handle) ---------------------------
   function openDb() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open('valheim-installer', 1);
@@ -52,10 +52,10 @@
     } catch { return null; }
   }
 
-  // --- folder validation -----------------------------------------------------
+  // --- mappa ellenőrzése ------------------------------------------------------
   async function hasEntry(dir, name) {
-    try { await dir.getFileHandle(name); return true; } catch { /* no */ }
-    try { await dir.getDirectoryHandle(name); return true; } catch { /* no */ }
+    try { await dir.getFileHandle(name); return true; } catch { /* nincs */ }
+    try { await dir.getDirectoryHandle(name); return true; } catch { /* nincs */ }
     return false;
   }
   async function looksLikeValheim(dir) {
@@ -65,12 +65,13 @@
     return false;
   }
   async function pickFolder() {
+    setStatus('Válaszd ki a Valheim mappát (ahol a Valheim.exe van)');
     const dir = await window.showDirectoryPicker({ id: 'valheim', mode: 'readwrite' });
     if (!(await looksLikeValheim(dir))) {
       const ok = confirm(
-        'That folder does not look like the Valheim install folder.\n\n' +
-        'Expected to find valheim.exe or the valheim_Data folder\n' +
-        '(usually ...\\steamapps\\common\\Valheim).\n\nUse it anyway?'
+        'Ez a mappa nem úgy tűnik, mint a Valheim telepítési mappája.\n\n' +
+        'Itt a valheim.exe fájlnak vagy a valheim_Data mappának kellene lennie\n' +
+        '(általában ...\\steamapps\\common\\Valheim).\n\nMégis ezt használod?'
       );
       if (!ok) return null;
     }
@@ -82,29 +83,29 @@
     return (await dir.requestPermission(opts)) === 'granted';
   }
 
-  // --- install ---------------------------------------------------------------
+  // --- telepítés --------------------------------------------------------------
   async function install() {
     const btn = $('install');
     btn.disabled = true;
     try {
       if (!state.dir) {
         state.dir = await pickFolder();
-        if (!state.dir) { setStatus('Cancelled.'); return; }
+        if (!state.dir) { setStatus('Megszakítva.'); return; }
         await saveHandle(state.dir);
       }
-      if (!(await ensurePermission(state.dir))) { setStatus('Write permission denied.', 'error'); return; }
+      if (!(await ensurePermission(state.dir))) { setStatus('Nincs írási engedély.', 'error'); return; }
 
-      setStatus('Downloading mods...', 'busy');
+      setStatus('Modok letöltése...', 'busy');
       const res = await fetch(base() + '/valheim_mods.zip', { cache: 'no-store' });
-      if (!res.ok) throw new Error('download failed (' + res.status + ')');
+      if (!res.ok) throw new Error('a letöltés sikertelen (' + res.status + ')');
       const zip = new Uint8Array(await res.arrayBuffer());
 
       if (state.manifest && state.manifest.sha256) {
-        setStatus('Verifying checksum...', 'busy');
-        if ((await sha256Hex(zip)) !== state.manifest.sha256) throw new Error('checksum mismatch - download may be corrupted');
+        setStatus('Ellenőrzés folyamatban...', 'busy');
+        if ((await sha256Hex(zip)) !== state.manifest.sha256) throw new Error('az ellenőrzőösszeg nem egyezik – a letöltés sérült lehet');
       }
 
-      setStatus('Unpacking...', 'busy');
+      setStatus('Kicsomagolás...', 'busy');
       const files = fflate.unzipSync(zip);
       const entries = Object.entries(files).filter(([p]) => !p.endsWith('/'));
 
@@ -119,35 +120,36 @@
         await writable.write(data);
         await writable.close();
         done++;
-        setStatus('Installing ' + done + '/' + entries.length + ' - ' + name, 'busy');
+        setStatus('Telepítés: ' + done + '/' + entries.length + ' – ' + name, 'busy');
         setProgress(done, entries.length);
       }
 
       setProgress(1, 1);
-      setStatus('All done! Installed v' + (state.manifest ? state.manifest.version : ''), 'ok');
+      setStatus('Kész! Telepítve: v' + (state.manifest ? state.manifest.version : ''), 'ok');
     } catch (err) {
+      if (err && err.name === 'AbortError') { setStatus('Megszakítva.'); return; }
       const msg = String(err && err.message ? err.message : err);
       const hint = /lock|permission|denied|NoModificationAllowed/i.test(msg)
-        ? ' - make sure Valheim is closed and you picked the install folder'
+        ? ' – ellenőrizd, hogy a Valheim be van-e zárva, és a megfelelő mappát választottad-e ki'
         : '';
-      setStatus('Error: ' + msg + hint, 'error');
+      setStatus('Hiba: ' + msg + hint, 'error');
     } finally {
       btn.disabled = false;
     }
   }
 
-  // --- boot ------------------------------------------------------------------
+  // --- indítás ----------------------------------------------------------------
   async function init() {
     try {
       state.cfg = await loadJson('config.json');
       $('releases').href = 'https://github.com/' + state.cfg.repo + '/releases';
     } catch {
-      setStatus('config.json is missing or invalid.', 'error');
+      setStatus('A config.json hiányzik vagy hibás.', 'error');
       return;
     }
 
     if (!supported) {
-      setStatus('This browser cannot write to a folder. Use Chrome or Edge.', 'error');
+      setStatus('Ez a böngésző nem tud mappába írni. Használj Chrome-ot vagy Edge-et.', 'error');
       return;
     }
 
@@ -155,10 +157,10 @@
       state.manifest = await loadJson(base() + '/manifest.json');
       $('version').textContent = 'v' + state.manifest.version;
       if (state.manifest.builtAt) {
-        $('built').textContent = '(' + new Date(state.manifest.builtAt).toLocaleDateString() + ')';
+        $('built').textContent = '(' + new Date(state.manifest.builtAt).toLocaleDateString('hu-HU') + ')';
       }
     } catch {
-      setStatus('Could not reach the download service. Is the Worker deployed?', 'error');
+      setStatus('A letöltési szolgáltatás nem érhető el. Fut a Worker?', 'error');
       return;
     }
 
@@ -166,7 +168,7 @@
     const btn = $('install');
     btn.disabled = false;
     btn.addEventListener('click', install);
-    setStatus(state.dir ? 'Ready - folder remembered.' : 'Ready.');
+    setStatus(state.dir ? 'Kész – a mappa megjegyezve.' : 'Kész.');
   }
 
   document.addEventListener('DOMContentLoaded', init);
