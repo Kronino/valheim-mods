@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valheim Mods Installer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>Valheim Mods</h1>
+    <p class="sub">Latest: <span id="version">&hellip;</span> <span id="built"></span></p>
+
+    <button id="install" disabled>Install</button>
+
+    <div id="status" class="status" role="status"></div>
+    <div class="progress"><div id="bar"></div></div>
+
+    <p class="hint">
+      Requires Chrome or Edge. Close Valheim before installing.
+      Nothing is uploaded &mdash; files are written straight into the folder you pick.
+    </p>
+    <p class="links">
+      <a id="releases" href="#" target="_blank" rel="noopener">All versions</a>
+    </p>
+  </main>
+
+  <script src="vendor/fflate.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
